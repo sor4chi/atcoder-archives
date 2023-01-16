@@ -1,13 +1,24 @@
 #!/bin/bash
 
 PROJECT_DIR=$(cd $(dirname $0)/..; pwd)
-CONTEST_DIR=$(cat "$PROJECT_DIR"/.contest)
+if [ ! -f "$PROJECT_DIR/.contest" ]; then
+    echo "Please set the contest dir"
+    echo "$ sh scripts/set.sh <contest dir name>"
+    exit 1
+fi
 
+CONTEST_DIR=$(cat "$PROJECT_DIR"/.contest)
 echo "Contest dir: $CONTEST_DIR"
 
 if [ ! -d "$PROJECT_DIR/$CONTEST_DIR" ]; then
     echo "The contest dir is not exist"
     echo "Input path: $PROJECT_DIR/$CONTEST_DIR"
+    exit 1
+fi
+
+if [ -z "$1" ]; then
+    echo "Please input the problem name"
+    echo "Example: $ sh scripts/check.sh a"
     exit 1
 fi
 
