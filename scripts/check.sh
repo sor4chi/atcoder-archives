@@ -37,32 +37,23 @@ if [ ! -d "$TESTCASE_DIR" ]; then
     exit 1
 fi
 
-g++ -o $OUTPUT_FILE_PATH $CPP_FILE_PATH
+g++ -std=c++11 -o $OUTPUT_FILE_PATH $CPP_FILE_PATH
 
-for TESTCASE_PATH in "$TESTCASE_DIR"/*
+for TESTCASE_PATH in "$TESTCASE_DIR"/*.in
 do
-    echo ""
-    echo "CASE: $(basename $TESTCASE_PATH)"
-    FLAG=0
-    while IFS= read -r line
-    do
-        if [ "$line" = "---" ]; then
-            FLAG=1
-            continue
-        fi
-        if [ $FLAG -eq 0 ]; then
-            INPUT="$INPUT$line"
-        else
-            OUTPUT="$OUTPUT$line"
-        fi
-    done < "$TESTCASE_PATH"
+    INPUT=$(cat $TESTCASE_PATH)
+    OUTPUT=$(cat ${TESTCASE_PATH%.in}.out)
+
+    echo "Testcase: ${TESTCASE_PATH%.in}"
+
     echo "Input: $INPUT"
     echo "Output: $OUTPUT"
     echo "Result: $(echo $INPUT | $OUTPUT_FILE_PATH)"
+    ESC=$(printf '\033')
     if [ "$OUTPUT" = "$(echo $INPUT | $OUTPUT_FILE_PATH)" ]; then
-        echo "\e[32m SUCCESS\e[m\n"
+        echo "${ESC}[32m SUCCESS${ESC}[m"
     else
-        echo "\e[31m FAILED\e[m"
+        echo "${ESC}[31m FAILED${ESC}[m"
     fi
     INPUT=""
     OUTPUT=""

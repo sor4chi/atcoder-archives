@@ -16,41 +16,32 @@ using P = pair<int, int>;
 using T = tuple<int, int, int>;
 using graph = vector<vector<int>>;
 
-int main() {
+int main()
+{
     int n;
     cin >> n;
     vector<string> from(n), to(n);
     rep(i, n) cin >> from[i] >> to[i];
-    map<string, vector<string>> g;
-    map<string, bool> visited;
-
-    rep(i, n) {
-        g[from[i]].push_back(to[i]);
-    }
-
-    for (auto p : g) {
-        visited[p.first] = false;
-    }
-
-    for (auto p : g) {
-        if (visited[p.first]) continue;
-        visited[p.first] = true;
-        queue<string> q;
-        q.push(p.first);
-
-        while (!q.empty()) {
-            string v = q.front();
-            q.pop();
-
-            for (auto u : g[v]) {
-                if (visited[u]) {
-                    cout << "No" << endl;
-                    return 0;
-                }
-                visited[u] = true;
-                q.push(u);
+    // bfs
+    queue<string> q;
+    q.push(from[0]);
+    int ans = 0;
+    while (!q.empty())
+    {
+        string now = q.front();
+        q.pop();
+        if (now == to[0])
+        {
+            cout << ans << endl;
+            return 0;
+        }
+        rep(i, n)
+        {
+            if (now == from[i])
+            {
+                q.push(to[i]);
             }
         }
+        ans++;
     }
-    cout << "Yes" << endl;
 }

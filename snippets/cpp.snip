@@ -1,0 +1,73 @@
+snippet atc:
+  #include <bits/stdc++.h>
+  #include <cmath>
+
+  #if __has_include(<atcoder/all>)
+  #include <atcoder/all>
+  using namespace atcoder;
+  #endif
+
+  using namespace std;
+  using ll = long long;
+  #define rep(i, n) for (int i = 0; i < (n); ++i)
+  #define rep1(i, s, n) for (int i = s; i < n; i++)
+  #define all(vec) vec.begin(), vec.end()
+  using P = pair<int, int>;
+  using T = tuple<int, int, int>;
+  using graph = vector<vector<int>>;
+
+  int main() {
+    ${1}
+  }
+
+snippet bfs:
+  queue<int> que;
+  que.push(s);
+  vector<int> dist(n, -1);
+  dist[s] = 0;
+  while (!que.empty()) {
+    int v = que.front();
+    que.pop();
+    for (auto nv : g[v]) {
+      if (dist[nv] != -1) continue;
+      dist[nv] = dist[v] + 1;
+      que.push(nv);
+    }
+  }
+
+snippet dfs:
+  vector<int> dist(n, -1);
+  dist[s] = 0;
+  function<void(int)> dfs = [&](int v) {
+    for (auto nv : g[v]) {
+      if (dist[nv] != -1) continue;
+      dist[nv] = dist[v] + 1;
+      dfs(nv);
+    }
+  };
+  dfs(s);
+
+snippet unionfind:
+  struct UnionFind {
+    vector<int> par;
+    vector<int> siz;
+    UnionFind(int n) : par(n), siz(n, 1) {
+      rep(i, n) par[i] = i;
+    }
+    int root(int x) {
+      if (par[x] == x) return x;
+      return par[x] = root(par[x]);
+    }
+    bool same(int x, int y) { return root(x) == root(y); }
+    void unite(int x, int y) {
+      x = root(x);
+      y = root(y);
+      if (x == y) return;
+      if (siz[x] < siz[y]) swap(x, y);
+      par[y] = x;
+      siz[x] += siz[y];
+    }
+    int size(int x) { return siz[root(x)]; }
+  };
+
+  
