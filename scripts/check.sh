@@ -37,7 +37,7 @@ if [ ! -d "$TESTCASE_DIR" ]; then
     exit 1
 fi
 
-g++ -std=c++11 -o $OUTPUT_FILE_PATH $CPP_FILE_PATH
+g++ -std=c++17 -o $OUTPUT_FILE_PATH $CPP_FILE_PATH
 
 for TESTCASE_PATH in "$TESTCASE_DIR"/*.in
 do
