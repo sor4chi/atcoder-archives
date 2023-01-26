@@ -39,7 +39,7 @@ if [ ! -d "$TESTCASE_DIR" ]; then
     exit 1
 fi
 
-g++ -std=c++11 -o $OUTPUT_FILE_PATH $CPP_FILE_PATH
+g++ -std=c++17 -o $OUTPUT_FILE_PATH $CPP_FILE_PATH
 
 TESTCASE_COUNT=0
 SUCCESS_COUNT=0
