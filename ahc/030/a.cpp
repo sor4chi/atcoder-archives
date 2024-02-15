@@ -28,6 +28,7 @@ struct Solver {
     float eps;  // 0.01 <= eps <= 0.2 (eps = 0.01k for some integer k)
     vector<vector<pair<int, int>>> mp;
     map<int, vector<pair<int, int>>> hit;
+    set<pair<int, int>> seen;
     int total = 0;
 
     Solver() {
@@ -69,6 +70,36 @@ struct Solver {
         return res;
     }
 
+   private:
+    vector<pair<int, int>> get_arounds(pair<int, int> p) {
+        // 上下左右、ただし範囲外と既に見た場所は除く
+        const vector<pair<int, int>> d = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        vector<pair<int, int>> res;
+        for (auto q : d) {
+            pair<int, int> r = {p.first + q.first, p.second + q.second};
+            if (r.first < 0 || r.first >= N || r.second < 0 || r.second >= N) {
+                continue;
+            }
+            if (seen.count(r) > 0) {
+                continue;
+            }
+            res.push_back(r);
+        }
+        return res;
+    }
+
+   private:
+    pair<int, int> get_new() {
+        // 未知の場所をランダムに返す
+        while (true) {
+            int i = rand() % N;
+            int j = rand() % N;
+            if (seen.count({i, j}) == 0) {
+                return {i, j};
+            }
+        }
+    }
+
    public:
     void answer() {
         int hit_cnt = 0;
@@ -86,16 +117,26 @@ struct Solver {
    public:
     void solve() {
         int cnt = 0;
-        rep(i, N) {
-            rep(j, N) {
-                vector<pair<int, int>> v = {{i, j}};
-                int res = question(v);
-                if (res >= 1) {
-                    hit[res].push_back({i, j});
-                    cnt += res;
-                }
-                if (cnt >= total) {
-                    return;
+        queue<pair<int, int>> q;
+        pair<int, int> p = get_new();
+        q.push(p);
+        seen.insert(p);
+        while (cnt < total) {
+            if (q.empty()) {
+                pair<int, int> p = get_new();
+                q.push(p);
+                seen.insert(p);
+            }
+            pair<int, int> p = q.front();
+            q.pop();
+            vector<pair<int, int>> v = {p};
+            int res = question(v);
+            if (res >= 1) {
+                hit[res].push_back(p);
+                cnt += res;
+                for (auto r : get_arounds(p)) {
+                    q.push(r);
+                    seen.insert(r);
                 }
             }
         }
