@@ -22,6 +22,19 @@ void println() { cout << '\n'; }
 #define rep(i, n) for (int i = 0; i < n; i++)
 #define rep1(i, n) for (int i = 1; i <= n; i++)
 
+const string DEBUG_FILE = "debug.txt";
+template <class T, class... Ts>
+void debug(const T& a, const Ts&... b) {
+    ofstream fout(DEBUG_FILE, ios::app);
+    fout << a;
+    (void)(fout << ... << (fout << ' ', b));
+}
+void debug() {
+    ofstream fout(DEBUG_FILE, ios::app);
+    fout << '\n';
+}
+
+
 struct Solver {
     int N;      // 10 <= N <= 20
     int M;      // 2 <= M <= 20
