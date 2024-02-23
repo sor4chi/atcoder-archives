@@ -25,6 +25,7 @@ void println() { cout << '\n'; }
 #define YESNO(a) cout << (a ? "YES" : "NO") << '\n';
 
 int PYRAMID_SIZE = 30;
+int TOTAL = PYRAMID_SIZE * (PYRAMID_SIZE + 1) / 2;
 int MAX_ITER = 10000;
 
 typedef pair<int, int> Coordinate;
@@ -40,50 +41,97 @@ struct Swap {
 
 struct Solver {
     map<Coordinate, Ball> pyramid;
+    vector<Coordinate> smalls = vector<Coordinate>(TOTAL);
     vector<Swap> swaps;
-    time_t start = clock();
 
-    Solver() {
-        cin();
+    Solver(map<Coordinate, Ball> pyramid, vector<Swap> swaps) {
+        this->pyramid = pyramid;
+        this->swaps = swaps;
         init();
     }
 
-    void cin() {
-        rep(i, PYRAMID_SIZE) {
-            rep(j, i + 1) {
-                int value;
-                input(value);
-                pyramid[{i, j}] = {value};
-            }
+    void init() {
+        for (auto [coordinate, ball] : pyramid) {
+            smalls[ball.value] = coordinate;
         }
     }
 
-    void init() {
+    int get_index(Coordinate coordinate) {
+        return coordinate.first * (coordinate.first + 1) / 2 + coordinate.second;
     }
 
     void solve() {
-        int cnt = 0;
-        while (cnt++ < MAX_ITER && clock() - start < 1.9 * CLOCKS_PER_SEC) {
-            for (int i = PYRAMID_SIZE - 1; i > 0; i--) {
-                rep(j, i + 1) {
-                    int me = pyramid[{i, j}].value;
-                    int lb = -1, rb = -1;
-                    if (j > 0) {
-                        lb = pyramid[{i - 1, j - 1}].value;
+        for (auto coordinate : smalls) {
+            while (coordinate.first > 0) {
+                pair<int, int> lt = {coordinate.first - 1, coordinate.second - 1};
+                pair<int, int> rt = {coordinate.first - 1, coordinate.second};
+                int value = pyramid[coordinate].value;
+                if (coordinate.second == 0) {
+                    int rtv = pyramid[rt].value;
+                    if (rtv > value) {
+                        swaps.push_back({coordinate, rt});
+                        swap(pyramid[coordinate], pyramid[rt]);
+                        // update smalls
+                        smalls[value] = rt;
+                        smalls[rtv] = coordinate;
+                        coordinate = rt;
+                        continue;
+                    } else {
+                        break;
                     }
-                    if (j < i) {
-                        rb = pyramid[{i - 1, j}].value;
+                }
+                if (coordinate.second == coordinate.first) {
+                    int ltv = pyramid[lt].value;
+                    if (ltv > value) {
+                        swaps.push_back({coordinate, lt});
+                        swap(pyramid[coordinate], pyramid[lt]);
+                        // update smalls
+                        smalls[value] = lt;
+                        smalls[ltv] = coordinate;
+                        coordinate = lt;
+                        continue;
+                    } else {
+                        break;
                     }
-                    if (lb < me && rb < me) {
+                }
+                int ltv = pyramid[lt].value;
+                int rtv = pyramid[rt].value;
+                if (ltv > value && rtv > value) {
+                    if (ltv > rtv) {
+                        swaps.push_back({coordinate, lt});
+                        swap(pyramid[coordinate], pyramid[lt]);
+                        // update smalls
+                        smalls[value] = lt;
+                        smalls[ltv] = coordinate;
+                        coordinate = lt;
+                        continue;
+                    } else {
+                        swaps.push_back({coordinate, rt});
+                        swap(pyramid[coordinate], pyramid[rt]);
+                        // update smalls
+                        smalls[value] = rt;
+                        smalls[rtv] = coordinate;
+                        coordinate = rt;
                         continue;
                     }
-                    if (lb > rb) {
-                        swap(pyramid[{i, j}], pyramid[{i - 1, j - 1}]);
-                        swaps.push_back({{i, j}, {i - 1, j - 1}});
-                    } else {
-                        swap(pyramid[{i, j}], pyramid[{i - 1, j}]);
-                        swaps.push_back({{i, j}, {i - 1, j}});
-                    }
+                } else if (ltv > value) {
+                    swaps.push_back({coordinate, lt});
+                    swap(pyramid[coordinate], pyramid[lt]);
+                    // update smalls
+                    smalls[value] = lt;
+                    smalls[ltv] = coordinate;
+                    coordinate = lt;
+                    continue;
+                } else if (rtv > value) {
+                    swaps.push_back({coordinate, rt});
+                    swap(pyramid[coordinate], pyramid[rt]);
+                    // update smalls
+                    smalls[value] = rt;
+                    smalls[rtv] = coordinate;
+                    coordinate = rt;
+                    continue;
+                } else {
+                    break;
                 }
             }
         }
@@ -103,7 +151,18 @@ int main() {
     cout.tie(nullptr);
     cout << fixed << setprecision(15);
 
-    Solver s;
+    map<Coordinate, Ball> pyramid;
+    vector<Swap> swaps;
+
+    rep(i, PYRAMID_SIZE) {
+        rep(j, i + 1) {
+            int value;
+            input(value);
+            pyramid[{i, j}] = {value};
+        }
+    }
+
+    Solver s = Solver(pyramid, swaps);
     s.solve();
     s.answer();
 
