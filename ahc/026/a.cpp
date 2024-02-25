@@ -98,38 +98,89 @@ struct Solver {
                 int v = b[p.first][p.second];
                 vector<int> aboves = get_aboves(x, y);
                 reverse(aboves.begin(), aboves.end());
-                vector<pair<int, int>> tops = get_tops();
-                sort(tops.begin(), tops.end(), [](auto a, auto b) { return a.second > b.second; });
-                for (auto item : aboves) {
-                    // itemより大きい中で最小のtopに移動
-                    int min_top = 1e9;
-                    int min_top_index = -1;
-                    for (auto [top_index, top] : tops) {
-                        if (top_index == p.first) continue;
-                        if (top > item && top < min_top) {
-                            min_top = top;
-                            min_top_index = top_index;
+                int move_value = -1;
+                rep(j, aboves.size()) {
+                    int item = aboves[j];
+                    vector<pair<int, int>> tops = get_tops();
+                    sort(tops.begin(), tops.end(), [](auto a, auto b) { return a.second > b.second; });
+                    if (move_value == -1) {
+                        move_value = item;
+                    } else {
+                        // もしmove_valueよりもitemがおおきければmove_valueを更新
+                        if (item > move_value) {
+                            move_value = item;
+                        } else {
+                            // topsからmove_valueより大きくて最小のものを探す
+                            int min_top = 1e9;
+                            int min_top_index = -1;
+                            for (auto [index, top] : tops) {
+                                if (index == p.first) continue;  // 同じ列は無視
+                                if(top == -1) {
+                                    min_top = -1;
+                                    min_top_index = index;
+                                    break;
+                                }
+                                if (top > move_value && top < min_top) {
+                                    min_top = top;
+                                    min_top_index = index;
+                                }
+                            }
+                            if (min_top_index != -1) {
+                                // 見つかればそこに移動
+                                move(move_value, min_top_index);
+                            } else {
+                                // 見つからなければ
+                                // topsからmove_valueより小さいくて最大のものを探す
+                                int max_top = -1;
+                                int max_top_index = -1;
+                                for (auto [index, top] : tops) {
+                                    if (index == p.first) continue;  // 同じ列は無視
+                                    if (top < move_value && top > max_top) {
+                                        max_top = top;
+                                        max_top_index = index;
+                                    }
+                                }
+                                // 見つかればそこに移動
+                                move(move_value, max_top_index);
+                            }
+                            move_value = item;
                         }
                     }
-                    if (min_top_index != -1) {
-                        move(item, min_top_index);
-                        continue;
-                    }
-
-                    // すべてのtopがitemより小さい場合
-                    // itemより小さい中で一番小さいtopに移動
-                    int min_top2 = 1e9;
-                    int min_top_index2 = -1;
-                    for (auto [top_index, top] : tops) {
-                        if (top_index == p.first) continue;
-                        if (top < item && top < min_top2) {
-                            min_top2 = top;
-                            min_top_index2 = top_index;
+                    // もし最後の要素であれば
+                    if (j == aboves.size() - 1) {
+                        // topsからmove_valueより大きくて最小のものを探す
+                        int min_top = 1e9;
+                        int min_top_index = -1;
+                        for (auto [index, top] : tops) {
+                            if (index == p.first) continue;  // 同じ列は無視
+                            if(top == -1) {
+                                min_top = -1;
+                                min_top_index = index;
+                                break;
+                            }
+                            if (top > move_value && top < min_top) {
+                                min_top = top;
+                                min_top_index = index;
+                            }
                         }
-                    }
-                    if (min_top_index2 != -1) {
-                        move(item, min_top_index2);
-                        continue;
+                        if (min_top_index != -1) {
+                            // 見つかればそこに移動
+                            move(move_value, min_top_index);
+                        } else {
+                            // 見つからなければ
+                            // topsからmove_valueより小さいくて最大のものを探す
+                            int max_top = -1;
+                            int max_top_index = -1;
+                            for (auto [index, top] : tops) {
+                                if (index == p.first) continue;  // 同じ列は無視
+                                if (top < move_value && top > max_top) {
+                                    max_top = top;
+                                    max_top_index = index;
+                                }
+                            }
+                            // 見つかればそこに移動
+                            move(move_value, max_top_index);
+                        }
                     }
                 }
             }
