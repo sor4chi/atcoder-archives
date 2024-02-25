@@ -52,6 +52,15 @@ struct Solver {
         ans.push_back({v, 0});
     }
 
+    vector<int> get_aboves(int x, int y) {
+        // b[x]のy番目より上の値を取得
+        vector<int> res;
+        for (auto it = b[x].begin() + y + 1; it != b[x].end(); it++) {
+            res.push_back(*it);
+        }
+        return res;
+    }
+
     int move(int v, int to) {
         auto [x, y] = get_index(v);
         // b[x]のy番目以降をsliceしてtoに移動
@@ -84,37 +93,47 @@ struct Solver {
         rep1(i, n) {
             auto [x, y] = get_index(i);
             pair<int, int> p = above(x, y);
+            // iを露出させるために上に積まれてるものをどうにか避ける
             if (p.first != -1) {
                 int v = b[p.first][p.second];
+                vector<int> aboves = get_aboves(x, y);
+                reverse(aboves.begin(), aboves.end());
                 vector<pair<int, int>> tops = get_tops();
-                // p.firstを除いたtopsの中で最大のもの
-                int max_top_index = -1;
-                int max_top = -1;
-                for (auto [i, top] : tops) {
-                    if (top == -1) {
-                        max_top_index = i;  // 空の山があればそこに優先的に移動
-                        break;
-                    }
-                    if (top > max_top && i != p.first) {
-                        max_top = top;
-                        max_top_index = i;
-                    }
-                }
-                if (max_top_index != -1) {
-                    move(v, max_top_index);
-                } else {
-                    // max_top_indexが-1の場合
-                    rep(i, m) {
-                        if (i != p.first) {
-                            move(v, i);
-                            break;
+                sort(tops.begin(), tops.end(), [](auto a, auto b) { return a.second > b.second; });
+                for (auto item : aboves) {
+                    // itemより大きい中で最小のtopに移動
+                    int min_top = 1e9;
+                    int min_top_index = -1;
+                    for (auto [top_index, top] : tops) {
+                        if (top_index == p.first) continue;
+                        if (top > item && top < min_top) {
+                            min_top = top;
+                            min_top_index = top_index;
                         }
                     }
+                    if (min_top_index != -1) {
+                        move(item, min_top_index);
+                        continue;
+                    }
+
+                    // すべてのtopがitemより小さい場合
+                    // itemより小さい中で一番小さいtopに移動
+                    int min_top2 = 1e9;
+                    int min_top_index2 = -1;
+                    for (auto [top_index, top] : tops) {
+                        if (top_index == p.first) continue;
+                        if (top < item && top < min_top2) {
+                            min_top2 = top;
+                            min_top_index2 = top_index;
+                        }
+                    }
+                    if (min_top_index2 != -1) {
+                        move(item, min_top_index2);
+                        continue;
+                    }
                 }
-                pick(i);
-            } else {
-                pick(i);
             }
+            pick(i);
         }
     }
 
