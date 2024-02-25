@@ -115,7 +115,7 @@ struct Solver {
                             int min_top_index = -1;
                             for (auto [index, top] : tops) {
                                 if (index == p.first) continue;  // 同じ列は無視
-                                if(top == -1) {
+                                if (top == -1) {
                                     min_top = -1;
                                     min_top_index = index;
                                     break;
@@ -146,6 +146,8 @@ struct Solver {
                             move_value = item;
                         }
                     }
+                    tops = get_tops();
+                    sort(tops.begin(), tops.end(), [](auto a, auto b) { return a.second > b.second; });
                     // もし最後の要素であれば
                     if (j == aboves.size() - 1) {
                         // topsからmove_valueより大きくて最小のものを探す
@@ -153,7 +155,7 @@ struct Solver {
                         int min_top_index = -1;
                         for (auto [index, top] : tops) {
                             if (index == p.first) continue;  // 同じ列は無視
-                            if(top == -1) {
+                            if (top == -1) {
                                 min_top = -1;
                                 min_top_index = index;
                                 break;
