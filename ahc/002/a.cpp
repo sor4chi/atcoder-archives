@@ -36,13 +36,13 @@ const int SIZE = 50;
 struct Node {
     pair<int, int> p;
     vector<pair<int, int>> path;
+    set<int> visited_tiles;
     int total_point;
 };
 
 struct Solver {
     int si, sj;
     vector<vector<int>> tiles;
-    set<int> visited_tiles;
     vector<vector<int>> points;
     Node best;
     Solver(int si, int sj, vector<vector<int>> tiles, vector<vector<int>> points)
@@ -73,11 +73,12 @@ struct Solver {
 
     void solve() {
         stack<Node> s;
-        Node start = {{si, sj}, {{si, sj}}, points[si][sj]};
+        Node start = {{si, sj}, {{si, sj}}, {}, points[si][sj]};
         s.push(start);
         best = start;
-        while (!s.empty()) {
-            auto [p, path, total_point] = s.top();
+        chrono::system_clock::time_point start_time = chrono::system_clock::now();
+        while (!s.empty() && chrono::system_clock::now() - start_time < 1900ms) {
+            auto [p, path, visited_tiles, total_point] = s.top();
             // {
             //     // report the best path
             //     pair<int, int> prev = {-1, -1};
@@ -102,7 +103,7 @@ struct Solver {
             int tile = tiles[p.first][p.second];
             visited_tiles.insert(tile);
             if (total_point > best.total_point) {
-                best = {p, path, total_point};
+                best = {p, path, visited_tiles, total_point};
             }
             for (auto [_d, dij] : ds) {
                 int ni = p.first + dij.first;
@@ -115,7 +116,9 @@ struct Solver {
                 }
                 vector<pair<int, int>> new_path = path;
                 new_path.push_back({ni, nj});
-                s.push({{ni, nj}, new_path, total_point + points[ni][nj]});
+                set<int> new_visited_tiles = visited_tiles;
+                new_visited_tiles.insert(tiles[ni][nj]);
+                s.push({{ni, nj}, new_path, visited_tiles, total_point + points[ni][nj]});
             }
         }
     }
