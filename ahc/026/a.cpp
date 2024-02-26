@@ -24,15 +24,28 @@ void println() { cout << '\n'; }
 #define yesno(a) cout << (a ? "Yes" : "No") << '\n';
 #define YESNO(a) cout << (a ? "YES" : "NO") << '\n';
 
+unsigned long rng() {
+    static unsigned long x = 88172645463325252UL;
+    x ^= x << 7;
+    x ^= x >> 9;
+    return x;
+}
+
+struct Action {
+    pair<int, int> move;
+    int cost;
+};
+
 struct Solver {
     int n, m;
     vector<vector<int>> b;
-    vector<pair<int, int>> ans;
+    vector<Action> ans;
 
-    Solver(int n, int m, vector<vector<int>> b) {
+    Solver(int n, int m, vector<vector<int>> b, vector<Action> ans) {
         this->n = n;
         this->m = m;
         this->b = b;
+        this->ans = ans;
     }
 
     pair<int, int> get_index(int x) {
@@ -49,7 +62,7 @@ struct Solver {
     void pick(int v) {
         auto [x, y] = get_index(v);
         b[x].erase(b[x].begin() + y);
-        ans.push_back({v, 0});
+        ans.push_back({{v, 0}, 0});
     }
 
     vector<int> get_aboves(int x, int y) {
@@ -67,7 +80,8 @@ struct Solver {
         vector<int> sliced(b[x].begin() + y, b[x].end());
         b[x].erase(b[x].begin() + y, b[x].end());
         b[to].insert(b[to].end(), sliced.begin(), sliced.end());
-        ans.push_back({v, to + 1});
+        Action a = {{v, to + 1}, sliced.size() + 1};
+        ans.push_back(a);
         return sliced.size();
     }
 
@@ -192,8 +206,16 @@ struct Solver {
 
     void answer() {
         for (auto [x, y] : ans) {
-            println(x, y);
+            println(x.first, x.second);
         }
+    }
+
+    int score() {
+        int total = 0;
+        for (auto [x, y] : ans) {
+            total += y;  // cost
+        }
+        return 10000 - total;
     }
 };
 
@@ -202,10 +224,29 @@ int main() {
     input(n, m);
     vector<vector<int>> b(m, vector<int>(n / m, 0));
     rep(i, m) rep(j, n / m) input(b[i][j]);
+    vector<Action> ans;
+    chrono::system_clock::time_point start = chrono::system_clock::now();
 
-    Solver s = Solver(n, m, b);
-    s.solve();
-    s.answer();
+    // 山登り、moveをn回繰り返す
+    int best_score = 0;
+    Solver best_solver = Solver(n, m, b, ans);
+    while (chrono::system_clock::now() - start < chrono::milliseconds(1900)) {
+        Solver s = Solver(n, m, b, ans);
+        int move_iter = rng() % 10;
+        rep(i, move_iter) {
+            int move_v = (rng() % n) + 1;
+            int move_to = rng() % m;
+            s.move(move_v, move_to);
+        }
+        s.solve();
+        int score = s.score();
+        if (score > best_score) {
+            best_score = score;
+            best_solver = s;
+        }
+    }
+
+    best_solver.answer();
 
     return 0;
 }
