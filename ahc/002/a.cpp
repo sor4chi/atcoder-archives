@@ -40,6 +40,32 @@ struct Node {
     int total_point;
 };
 
+string path_to_lrud(const vector<pair<int, int>>& path) {
+    string res;
+    pair<int, int> prev = {-1, -1};
+    for (auto [i, j] : path) {
+        if (prev.first != -1) {
+            int di = i - prev.first;
+            int dj = j - prev.second;
+            if (di == 1) {
+                res.push_back('D');
+            } else if (di == -1) {
+                res.push_back('U');
+            } else if (dj == 1) {
+                res.push_back('R');
+            } else if (dj == -1) {
+                res.push_back('L');
+            }
+        }
+        prev = {i, j};
+    }
+    return res;
+}
+
+void answer(const vector<pair<int, int>>& path) {
+    println(path_to_lrud(path));
+}
+
 struct Solver {
     int si, sj;
     vector<vector<int>> tiles;
@@ -47,28 +73,6 @@ struct Solver {
     Node best;
     Solver(int si, int sj, vector<vector<int>> tiles, vector<vector<int>> points)
         : si(si), sj(sj), tiles(tiles), points(points) {
-    }
-
-    string path_to_lrud(const vector<pair<int, int>>& path) {
-        string res;
-        pair<int, int> prev = {-1, -1};
-        for (auto [i, j] : path) {
-            if (prev.first != -1) {
-                int di = i - prev.first;
-                int dj = j - prev.second;
-                if (di == 1) {
-                    res.push_back('D');
-                } else if (di == -1) {
-                    res.push_back('U');
-                } else if (dj == 1) {
-                    res.push_back('R');
-                } else if (dj == -1) {
-                    res.push_back('L');
-                }
-            }
-            prev = {i, j};
-        }
-        return res;
     }
 
     void solve() {
@@ -122,10 +126,6 @@ struct Solver {
             }
         }
     }
-
-    void answer() {
-        println(path_to_lrud(best.path));
-    }
 };
 
 int main() {
@@ -138,7 +138,7 @@ int main() {
 
     Solver s = Solver(si, sj, tiles, points);
     s.solve();
-    s.answer();
+    answer(s.best.path);
 
     return 0;
 }
