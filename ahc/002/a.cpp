@@ -77,7 +77,7 @@ struct Solver {
         s.push(start);
         best = start;
         chrono::system_clock::time_point start_time = chrono::system_clock::now();
-        while (!s.empty() && chrono::system_clock::now() - start_time < 1900ms) {
+        while (!s.empty() && chrono::system_clock::now() - start_time < 1980ms) {
             auto [p, path, visited_tiles, total_point] = s.top();
             // {
             //     // report the best path
