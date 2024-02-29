@@ -54,6 +54,16 @@ vector<pair<int, int>> strawberries;
 chrono::system_clock::time_point start;
 chrono::milliseconds time_limit(1900);
 
+// 近傍
+enum class Neighbor {
+    X_MOVE,
+    Y_MOVE,
+    X_DECREASE,
+    X_INCREASE,
+    Y_DECREASE,
+    Y_INCREASE,
+};
+
 struct Solver {
     vector<int> best_x_splits, best_y_splits;
 
@@ -104,19 +114,54 @@ struct Solver {
         sort(best_y_splits.begin(), best_y_splits.end());
         int best_score = 0;
         while (chrono::system_clock::now() - start < time_limit) {
+            Neighbor selected = Neighbor(rng() % 6);
             vector<int> x_splits = best_x_splits;
             vector<int> y_splits = best_y_splits;
-            bool is_x = rng() % 2;
-            if (is_x) {
+            if (selected == Neighbor::X_DECREASE) {
+                if (x_splits.size() > 1) {
+                    int idx = rng() % (x_splits.size() - 1);
+                    x_splits.erase(x_splits.begin() + idx);
+                } else {
+                    continue;
+                }
+            }
+            if (selected == Neighbor::X_INCREASE) {
+                if (x_splits.size() < halfK) {
+                    int idx = rng() % x_splits.size();
+                    int x = rng() % (2 * R) - R;
+                    x_splits.insert(x_splits.begin() + idx, x);
+                    sort(x_splits.begin(), x_splits.end());
+                } else {
+                    continue;
+                }
+            }
+            if (selected == Neighbor::Y_DECREASE) {
+                if (y_splits.size() > 1) {
+                    int idx = rng() % (y_splits.size() - 1);
+                    y_splits.erase(y_splits.begin() + idx);
+                } else {
+                    continue;
+                }
+            }
+            if (selected == Neighbor::Y_INCREASE) {
+                if (y_splits.size() < halfK) {
+                    int idx = rng() % y_splits.size();
+                    int y = rng() % (2 * R) - R;
+                    y_splits.insert(y_splits.begin() + idx, y);
+                    sort(y_splits.begin(), y_splits.end());
+                } else {
+                    continue;
+                }
+            }
+            if (selected == Neighbor::X_MOVE) {
                 int idx = rng() % x_splits.size();
                 int x = rng() % (2 * R) - R;
-                // x_splits[idx] = max(-R, min(R, x_splits[idx] + x));
                 x_splits[idx] = x;
                 sort(x_splits.begin(), x_splits.end());
-            } else {
+            }
+            if (selected == Neighbor::Y_MOVE) {
                 int idx = rng() % y_splits.size();
                 int y = rng() % (2 * R) - R;
-                // y_splits[idx] = max(-R, min(R, y_splits[idx] + y));
                 y_splits[idx] = y;
                 sort(y_splits.begin(), y_splits.end());
             }
