@@ -48,100 +48,82 @@ unsigned long lpow(unsigned long x, unsigned long n) {
 
 int N, K;
 int a[10];
+int R = 1e4;
 vector<pair<int, int>> strawberries;
 chrono::system_clock::time_point start;
 chrono::milliseconds time_limit(1900);
 
 struct Solver {
-    vector<array<int, 4>> ans;
-    vector<array<int, 4>> best_ans;
+    vector<int> x_splits, y_splits;
+    vector<int> best_x_splits, best_y_splits;
 
     void answer() {
-        println(best_ans.size());
-        for (auto a : best_ans) {
-            println(a[0], a[1], a[2], a[3]);
+        println(best_x_splits.size() + best_y_splits.size());
+        for (int x : best_x_splits) {
+            println(x, -R, x, R);
         }
+        for (int y : best_y_splits) {
+            println(-R, y, R, y);
+        }
+    }
+
+    int evaluate() {
+        map<pair<int, int>, int> cnt;
+        rep(i, N) {
+            int x = strawberries[i].first;
+            int y = strawberries[i].second;
+            int x_idx = lower_bound(x_splits.begin(), x_splits.end(), x) - x_splits.begin();
+            int y_idx = lower_bound(y_splits.begin(), y_splits.end(), y) - y_splits.begin();
+            // 線上にあれば除外
+            if (x_idx < x_splits.size() && x_splits[x_idx] == x) continue;
+            if (y_idx < y_splits.size() && y_splits[y_idx] == y) continue;
+            cnt[{x_idx, y_idx}]++;
+        }
+        map<int, int> b;
+        for (auto [k, v] : cnt) {
+            b[v]++;
+        }
+        int up = 0;
+        int down = 0;
+        rep(i, 10) {
+            up += min(b[i + 1], a[i]);
+            down += a[i];
+        }
+        return (int)round(1e6 * up / down);
     }
 
     void solve() {
-        while (K--) {
-            int p1x, p1y, p2x, p2y;
-            p1x = rng() % (2 * lpow(10, 4)) - lpow(10, 4);
-            p1y = rng() % (2 * lpow(10, 4)) - lpow(10, 4);
-            p2x = rng() % (2 * lpow(10, 4)) - lpow(10, 4);
-            p2y = rng() % (2 * lpow(10, 4)) - lpow(10, 4);
-            ans.push_back({p1x, p1y, p2x, p2y});
+        int halfK = K / 2;
+        rep(i, halfK) {
+            int x = rng() % (2 * R) - R;
+            int y = rng() % (2 * R) - R;
+            x_splits.push_back(x);
+            y_splits.push_back(y);
         }
-        int min_loss = 1e9;
-        bool first = true;
-        while (true && chrono::system_clock::now() - start < time_limit) {
-            if (first) {
-                first = false;
+        sort(x_splits.begin(), x_splits.end());
+        sort(y_splits.begin(), y_splits.end());
+        int best_score = 0;
+        while (chrono::system_clock::now() - start < time_limit) {
+            bool is_x = rng() % 2;
+            if (is_x) {
+                int idx = rng() % x_splits.size();
+                int x = rng() % (2 * R) - R;
+                x_splits[idx] = x;
+                sort(x_splits.begin(), x_splits.end());
             } else {
-                int r = rng() % 3;
-                if (r == 0) {
-                    neighbor1();
-                } else if (r == 1) {
-                    neighbor2();
-                } else {
-                    neighbor3();
-                }
+                int idx = rng() % y_splits.size();
+                int y = rng() % (2 * R) - R;
+                y_splits[idx] = y;
+                sort(y_splits.begin(), y_splits.end());
             }
-            map<vector<bool>, int> mp;
-            for (auto s : strawberries) {
-                vector<bool> v;
-                for (auto [p1x, p1y, p2x, p2y] : ans) {
-                    int a = p2y - p1y;
-                    int b = p1x - p2x;
-                    int c = p1x * (p1y - p2y) + p1y * (p2x - p1x);
-                    int d = a * s.first + b * s.second + c;
-                    v.push_back(d > 0);
-                }
-                mp[v]++;
-            }
-            map<int, int> mp2;
-            for (auto [k, v] : mp) {
-                mp2[v]++;
-            }
-            int loss = 0;
-            rep(i, 10) {
-                loss += abs(mp2[i + 1] - a[i]);
-            }
-            if (loss < min_loss) {
-                min_loss = loss;
-                best_ans = ans;
+            double score = evaluate();
+            if (score > best_score) {
+                best_score = score;
+                best_x_splits = x_splits;
+                best_y_splits = y_splits;
                 answer();
             }
         }
-    }
-
-    // 近傍1 ansをランダムに1つ減らす
-    void neighbor1() {
-        if (ans.size() <= 1) return;
-        int del_idx = rng() % ans.size();
-        ans.erase(ans.begin() + del_idx);
-    }
-
-    // 近傍2 ansの1つの要素をランダムに1つ変更する
-    void neighbor2() {
-        int idx = rng() % ans.size();
-        int p1x, p1y, p2x, p2y;
-        p1x = rng() % (2 * lpow(10, 4)) - lpow(10, 4);
-        p1y = rng() % (2 * lpow(10, 4)) - lpow(10, 4);
-        p2x = rng() % (2 * lpow(10, 4)) - lpow(10, 4);
-        p2y = rng() % (2 * lpow(10, 4)) - lpow(10, 4);
-        ans[idx] = {p1x, p1y, p2x, p2y};
-    }
-
-    // 近傍3 ansをランダムに1つ追加する
-    void neighbor3() {
-        if (ans.size() >= K) return;
-        int p1x, p1y, p2x, p2y;
-        p1x = rng() % (2 * lpow(10, 4)) - lpow(10, 4);
-        p1y = rng() % (2 * lpow(10, 4)) - lpow(10, 4);
-        p2x = rng() % (2 * lpow(10, 4)) - lpow(10, 4);
-        p2y = rng() % (2 * lpow(10, 4)) - lpow(10, 4);
-        ans.push_back({p1x, p1y, p2x, p2y});
     }
 };
 
