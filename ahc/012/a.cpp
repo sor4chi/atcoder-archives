@@ -192,6 +192,7 @@ int main(int argc, char* argv[]) {
 
     start = chrono::system_clock::now();
     input(N, K);
+    K *= 0.8;
     rep(i, 10) input(a[i]);
     rep(i, N) {
         int x, y;
