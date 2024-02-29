@@ -131,11 +131,19 @@ struct Solver {
     }
 };
 
-int main() {
+int main(int argc, char* argv[]) {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
     cout.tie(nullptr);
     cout << fixed << setprecision(15);
+
+    bool is_arg_contain_export = false;
+    for (int i = 0; i < argc; i++) {
+        if (string(argv[i]) == "--export") {
+            is_arg_contain_export = true;
+            break;
+        }
+    }
 
     start = chrono::system_clock::now();
     input(N, K);
@@ -148,6 +156,8 @@ int main() {
 
     Solver s;
     s.solve();
+    if (is_arg_contain_export)
+        println("Score =", s.evaluate(s.best_x_splits, s.best_y_splits));
 
     return 0;
 }
