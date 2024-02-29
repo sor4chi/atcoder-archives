@@ -31,6 +31,10 @@ unsigned long rng() {
     return x;
 }
 
+double rnd() {
+    return (double)rng() / ULONG_MAX;
+}
+
 unsigned long lpow(unsigned long x, unsigned long n) {
     unsigned long ret = 1;
     while (n > 0) {
@@ -48,6 +52,9 @@ int MOVE_RANGE = 300;
 vector<pair<int, int>> strawberries;
 chrono::system_clock::time_point start;
 chrono::milliseconds time_limit(1900);
+
+double start_temp = 1500;
+double end_temp = 100;
 
 // 近傍
 enum class Neighbor {
@@ -111,6 +118,7 @@ struct Solver {
         int best_score = 0;
         int iter = 0;
         while (chrono::system_clock::now() - start < time_limit) {
+            double temp = start_temp + (end_temp - start_temp) * (chrono::system_clock::now() - start) / time_limit;
             iter++;
             Neighbor selected = Neighbor(rng() % 6);
             vector<int> x_splits = best_x_splits;
@@ -171,7 +179,8 @@ struct Solver {
                 score = evaluate(x_splits, y_splits);
             }
 
-            if (score > best_score) {
+            int diff = score - best_score;
+            if (diff > 0 || exp(diff / temp) > rnd()) {
                 best_score = score;
                 best_x_splits = x_splits;
                 best_y_splits = y_splits;
