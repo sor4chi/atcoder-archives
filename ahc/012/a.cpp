@@ -49,12 +49,12 @@ unsigned long lpow(unsigned long x, unsigned long n) {
 int N, K;
 int a[10];
 int R = 1e4;
+int MOVE_RANGE = 300;
 vector<pair<int, int>> strawberries;
 chrono::system_clock::time_point start;
 chrono::milliseconds time_limit(1900);
 
 struct Solver {
-    vector<int> x_splits, y_splits;
     vector<int> best_x_splits, best_y_splits;
 
     void answer() {
@@ -67,7 +67,7 @@ struct Solver {
         }
     }
 
-    int evaluate() {
+    int evaluate(vector<int>& x_splits, vector<int>& y_splits) {
         map<pair<int, int>, int> cnt;
         rep(i, N) {
             int x = strawberries[i].first;
@@ -97,26 +97,30 @@ struct Solver {
         rep(i, halfK) {
             int x = rng() % (2 * R) - R;
             int y = rng() % (2 * R) - R;
-            x_splits.push_back(x);
-            y_splits.push_back(y);
+            best_x_splits.push_back(x);
+            best_y_splits.push_back(y);
         }
-        sort(x_splits.begin(), x_splits.end());
-        sort(y_splits.begin(), y_splits.end());
+        sort(best_x_splits.begin(), best_x_splits.end());
+        sort(best_y_splits.begin(), best_y_splits.end());
         int best_score = 0;
         while (chrono::system_clock::now() - start < time_limit) {
+            vector<int> x_splits = best_x_splits;
+            vector<int> y_splits = best_y_splits;
             bool is_x = rng() % 2;
             if (is_x) {
                 int idx = rng() % x_splits.size();
                 int x = rng() % (2 * R) - R;
+                // x_splits[idx] = max(-R, min(R, x_splits[idx] + x));
                 x_splits[idx] = x;
                 sort(x_splits.begin(), x_splits.end());
             } else {
                 int idx = rng() % y_splits.size();
                 int y = rng() % (2 * R) - R;
+                // y_splits[idx] = max(-R, min(R, y_splits[idx] + y));
                 y_splits[idx] = y;
                 sort(y_splits.begin(), y_splits.end());
             }
-            double score = evaluate();
+            double score = evaluate(x_splits, y_splits);
             if (score > best_score) {
                 best_score = score;
                 best_x_splits = x_splits;
