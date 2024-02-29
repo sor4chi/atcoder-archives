@@ -51,7 +51,7 @@ int R = 1e4;
 int MOVE_RANGE = 300;
 vector<pair<int, int>> strawberries;
 chrono::system_clock::time_point start;
-chrono::milliseconds time_limit(1900);
+chrono::milliseconds time_limit(1980);
 
 double start_temp = 1500;
 double end_temp = 100;
