@@ -113,7 +113,9 @@ struct Solver {
         sort(best_x_splits.begin(), best_x_splits.end());
         sort(best_y_splits.begin(), best_y_splits.end());
         int best_score = 0;
+        int iter = 0;
         while (chrono::system_clock::now() - start < time_limit) {
+            iter++;
             Neighbor selected = Neighbor(rng() % 6);
             vector<int> x_splits = best_x_splits;
             vector<int> y_splits = best_y_splits;
@@ -173,6 +175,7 @@ struct Solver {
                 answer();
             }
         }
+        cerr << "iter: " << iter << endl;
     }
 };
 
