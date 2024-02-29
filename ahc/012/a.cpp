@@ -31,11 +31,6 @@ unsigned long rng() {
     return x;
 }
 
-void answer() {
-    cout << "end" << endl;
-    cout.flush();
-}
-
 unsigned long lpow(unsigned long x, unsigned long n) {
     unsigned long ret = 1;
     while (n > 0) {
@@ -77,8 +72,9 @@ struct Solver {
         }
     }
 
+    map<pair<int, int>, int> cnt;
     int evaluate(vector<int>& x_splits, vector<int>& y_splits) {
-        map<pair<int, int>, int> cnt;
+        cnt.clear();
         rep(i, N) {
             int x = strawberries[i].first;
             int y = strawberries[i].second;
@@ -119,10 +115,12 @@ struct Solver {
             Neighbor selected = Neighbor(rng() % 6);
             vector<int> x_splits = best_x_splits;
             vector<int> y_splits = best_y_splits;
+            double score = 0;
             if (selected == Neighbor::X_DECREASE) {
                 if (x_splits.size() > 1) {
                     int idx = rng() % (x_splits.size() - 1);
                     x_splits.erase(x_splits.begin() + idx);
+                    score = evaluate(x_splits, y_splits);
                 } else {
                     continue;
                 }
@@ -133,6 +131,7 @@ struct Solver {
                     int x = rng() % (2 * R) - R;
                     x_splits.insert(x_splits.begin() + idx, x);
                     sort(x_splits.begin(), x_splits.end());
+                    score = evaluate(x_splits, y_splits);
                 } else {
                     continue;
                 }
@@ -141,6 +140,7 @@ struct Solver {
                 if (y_splits.size() > 1) {
                     int idx = rng() % (y_splits.size() - 1);
                     y_splits.erase(y_splits.begin() + idx);
+                    score = evaluate(x_splits, y_splits);
                 } else {
                     continue;
                 }
@@ -151,6 +151,7 @@ struct Solver {
                     int y = rng() % (2 * R) - R;
                     y_splits.insert(y_splits.begin() + idx, y);
                     sort(y_splits.begin(), y_splits.end());
+                    score = evaluate(x_splits, y_splits);
                 } else {
                     continue;
                 }
@@ -160,14 +161,16 @@ struct Solver {
                 int x = rng() % (2 * R) - R;
                 x_splits[idx] = x;
                 sort(x_splits.begin(), x_splits.end());
+                score = evaluate(x_splits, y_splits);
             }
             if (selected == Neighbor::Y_MOVE) {
                 int idx = rng() % y_splits.size();
                 int y = rng() % (2 * R) - R;
                 y_splits[idx] = y;
                 sort(y_splits.begin(), y_splits.end());
+                score = evaluate(x_splits, y_splits);
             }
-            double score = evaluate(x_splits, y_splits);
+
             if (score > best_score) {
                 best_score = score;
                 best_x_splits = x_splits;
