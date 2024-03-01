@@ -56,6 +56,10 @@ unsigned long rng() {
     return x;
 }
 
+double rnd() {
+    return (double)rng() / (double)ULONG_MAX;
+}
+
 const map<char, pair<ll, ll>> d = {
     {'L', {0, -1}},
     {'R', {0, 1}},
@@ -67,16 +71,32 @@ const char dir[4] = {'L', 'R', 'U', 'D'};
 
 enum class Neighbor {
     EXPAND,
+    RESET,
     SHRINK,
 };
 
 string stringify(Neighbor n) {
     if (n == Neighbor::EXPAND) return "EXPAND";
     if (n == Neighbor::SHRINK) return "SHRINK";
+    if (n == Neighbor::RESET) return "RESET";
     return "UNKNOWN";
 }
 
 const int SIZE = 1e4;
+double start_temp = 1e3;
+double end_temp = 1e-3;
+
+void print_report(const vector<Rect>& ans, ll score) {
+    cerr << "score: " << score << endl;
+    rep(i, n) {
+        Rect a = ans[i];
+        Ad ad = ads[i];
+        int s = (a.x2 - a.x1) * (a.y2 - a.y1);
+        cerr << a.x1 << " " << a.y1 << " " << a.x2 << " " << a.y2 << " " << s << endl;
+        int diff = s - ad.r;
+        cerr << "diff: " << diff << endl;
+    }
+}
 
 struct Solver {
     vector<Rect> best_ans;
@@ -103,7 +123,7 @@ struct Solver {
         return ret;
     }
 
-    void solve() {
+    void solve(int tl = 1950) {
         for (auto ad : ads) {
             int x1 = ad.x;
             int y1 = ad.y;
@@ -112,12 +132,20 @@ struct Solver {
             best_ans.push_back({x1, y1, x2, y2});
         }
         chrono::system_clock::time_point start = chrono::system_clock::now();
-        chrono::system_clock::time_point time_limit = start + chrono::milliseconds(1950);
+        chrono::system_clock::time_point time_limit = start + chrono::milliseconds(tl);
         ll best_score = 0;
         int iter = 0;
+        int start_move_range = 30;
+        int end_move_range = 30;
 
         while (chrono::system_clock::now() < time_limit) {
+            double temp = start_temp + (end_temp - start_temp) * (double)(chrono::system_clock::now() - start).count() / (double)(time_limit - start).count();
+            double progress = (double)(chrono::system_clock::now() - start).count() / (double)(time_limit - start).count();
+            // だんだん減少していく, expを使って指数的に減少する
+            // int move_range = end_move_range + (start_move_range - end_move_range) * exp(-100.0 * progress);
+            int move_range = end_move_range + (start_move_range - end_move_range) * progress;
             iter++;
+            // if (iter % 1000 == 0) println(move_range);
 
             // ========== ここから山登り操作 ==========
             vector<Rect> ans = best_ans;
@@ -126,14 +154,15 @@ struct Solver {
             Rect a = ans[idx];
             Ad ad = ads[idx];
             int s = (a.x2 - a.x1) * (a.y2 - a.y1);
-            Neighbor selected = Neighbor::EXPAND;
-            if (s > ad.r) selected = Neighbor::SHRINK;
+            Neighbor selected;
+            const vector<Neighbor> use_neighbors = {Neighbor::EXPAND, Neighbor::SHRINK};
+            selected = use_neighbors[rng() % use_neighbors.size()];
             if (selected == Neighbor::EXPAND) {
                 int try_left = 10;
                 while (try_left--) {
                     int dx1 = 0, dx2 = 0, dy1 = 0, dy2 = 0;
                     int move_dir = rng() % 4;  // L, R, U, D
-                    int expand_size = rng() % 100 + 1;
+                    int expand_size = rng() % move_range + 1;
                     bool is_in_the_border = false;
                     if (move_dir == 0 && a.x1 - expand_size >= 0) {
                         dx1 = -expand_size;
@@ -176,7 +205,7 @@ struct Solver {
                 while (try_left--) {
                     int dx1 = 0, dx2 = 0, dy1 = 0, dy2 = 0;
                     int move_dir = rng() % 4;  // L, R, U, D
-                    int shrink_size = rng() % 100 + 1;
+                    int shrink_size = rng() % move_range + 1;
                     bool is_valid_shrink = false;
                     if (move_dir == 0 && a.x1 + shrink_size < a.x2) {
                         dx1 = shrink_size;
@@ -203,22 +232,41 @@ struct Solver {
                 }
                 score = evaluate(ans);
             }
+            if (selected == Neighbor::RESET) {
+                Ad ad = ads[idx];
+                int x1 = ad.x;
+                int y1 = ad.y;
+                int x2 = x1 + 1;
+                int y2 = y1 + 1;
+                Rect new_a = {x1, y1, x2, y2};
+                ans[idx] = new_a;
+                score = evaluate(ans);
+            }
             // ========== ここまで山登り操作 ==========
 
-            if (score > best_score) {
+            int diff = score - best_score;
+
+            if (diff > 0 || exp((double)diff / temp) > rnd()) {
                 best_score = score;
                 best_ans = ans;
             }
         }
-        cerr << "iter: " << iter << endl;
     }
 };
 
-int main() {
+int main(int argc, char* argv[]) {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
     cout.tie(nullptr);
     cout << fixed << setprecision(15);
+
+    bool is_arg_contain_export = false;
+    for (int i = 0; i < argc; i++) {
+        if (string(argv[i]) == "--export") {
+            is_arg_contain_export = true;
+            break;
+        }
+    }
 
     input(n);
     rep(i, n) {
@@ -228,8 +276,13 @@ int main() {
     }
 
     Solver s;
-    s.solve();
+    s.solve(1950);
+    int score = s.evaluate(s.best_ans);
     answer(s.best_ans);
+    // print_report(s.best_ans, s.evaluate(s.best_ans));
+
+    if (is_arg_contain_export)
+        println("Score =", score);
 
     return 0;
 }
