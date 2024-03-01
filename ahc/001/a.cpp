@@ -321,9 +321,10 @@ int main(int argc, char* argv[]) {
     int best_score = 0;
     vector<Rect> best_ans;
     int left = 3;
+
     while (left--) {
         Solver s;
-        s.solve(600);
+        s.solve(660);
         int score = evaluate(s.best_ans);
         if (score > best_score) {
             best_score = score;
