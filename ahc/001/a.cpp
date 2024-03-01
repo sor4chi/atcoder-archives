@@ -67,10 +67,12 @@ const char dir[4] = {'L', 'R', 'U', 'D'};
 
 enum class Neighbor {
     EXPAND,
+    SHRINK,
 };
 
 string stringify(Neighbor n) {
     if (n == Neighbor::EXPAND) return "EXPAND";
+    if (n == Neighbor::SHRINK) return "SHRINK";
     return "UNKNOWN";
 }
 
@@ -113,15 +115,19 @@ struct Solver {
         chrono::system_clock::time_point time_limit = start + chrono::milliseconds(1950);
         ll best_score = 0;
         int iter = 0;
+
         while (chrono::system_clock::now() < time_limit) {
             iter++;
 
             // ========== ここから山登り操作 ==========
             vector<Rect> ans = best_ans;
-            Neighbor selected = Neighbor::EXPAND;
             ll score = 0;
             int idx = rng() % n;
             Rect a = ans[idx];
+            Ad ad = ads[idx];
+            int s = (a.x2 - a.x1) * (a.y2 - a.y1);
+            Neighbor selected = Neighbor::EXPAND;
+            if (s > ad.r) selected = Neighbor::SHRINK;
             if (selected == Neighbor::EXPAND) {
                 int try_left = 10;
                 while (try_left--) {
@@ -161,6 +167,38 @@ struct Solver {
                     }
                     if (!ok) continue;
                     ans[idx] = new_a;
+                    break;
+                }
+                score = evaluate(ans);
+            }
+            if (selected == Neighbor::SHRINK) {
+                int try_left = 10;
+                while (try_left--) {
+                    int dx1 = 0, dx2 = 0, dy1 = 0, dy2 = 0;
+                    int move_dir = rng() % 4;  // L, R, U, D
+                    int shrink_size = rng() % 100 + 1;
+                    bool is_valid_shrink = false;
+                    if (move_dir == 0 && a.x1 + shrink_size < a.x2) {
+                        dx1 = shrink_size;
+                        is_valid_shrink = true;
+                    }
+                    if (move_dir == 1 && a.x2 - shrink_size > a.x1) {
+                        dx2 = -shrink_size;
+                        is_valid_shrink = true;
+                    }
+                    if (move_dir == 2 && a.y1 + shrink_size < a.y2) {
+                        dy1 = shrink_size;
+                        is_valid_shrink = true;
+                    }
+                    if (move_dir == 3 && a.y2 - shrink_size > a.y1) {
+                        dy2 = -shrink_size;
+                        is_valid_shrink = true;
+                    }
+                    if (!is_valid_shrink) continue;
+                    a.x1 += dx1;
+                    a.x2 += dx2;
+                    a.y1 += dy1;
+                    a.y2 += dy2;
                     break;
                 }
                 score = evaluate(ans);
