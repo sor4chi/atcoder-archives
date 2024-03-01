@@ -8,6 +8,7 @@ Usage: $(basename "$0") [OPTION]...
   -h         Display help
   -t VALUE   A target c++ file (eg: a.cpp)
   -i VALUE   A input file (eg: 0000.txt)
+  -m         enable multiple mode
 
 Example:
   ./test.sh -t a.cpp -i 0000.txt
@@ -18,14 +19,19 @@ EOM
 
 TARGET=""
 INPUT=""
+IS_MULTIPLE=false
 
-while getopts ":t:i:h" optKey; do
+# set IS_MULTIPLE flag if -m option is set
+while getopts ":t:i:mh" optKey; do
   case "$optKey" in
     t)
         TARGET=$OPTARG
       ;;
     i)
         INPUT=$OPTARG
+      ;;
+    m)
+        IS_MULTIPLE=true
       ;;
     '-h'|'--help'|* )
       usage
@@ -43,13 +49,18 @@ if [ -z "$INPUT" ]; then
   usage
 fi
 
+
 # g++ a.cpp -o a.out && cd tools && ../a.out < in/0000.txt > out/0000.txt && cargo run --release --bin vis in/0000.txt out/0000.txt
 function run {
   rm -f a.out
   g++ $TARGET -o a.out
   cd tools
   ../a.out <in/$INPUT >out/$INPUT
-  cargo run --release --bin vis in/$INPUT out/$INPUT
+  if [ "$IS_MULTIPLE" = true ]; then
+    cargo run --release --bin vis in/$INPUT out/$INPUT multiple
+  else
+    cargo run --release --bin vis in/$INPUT out/$INPUT
+  fi
 }
 
 run || exit 1

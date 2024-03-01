@@ -72,22 +72,9 @@ const map<char, pair<ll, ll>> d = {
 
 const char dir[4] = {'L', 'R', 'U', 'D'};
 
-enum class Neighbor {
-    EXPAND,
-    RESET,
-    SHRINK,
-};
-
-string stringify(Neighbor n) {
-    if (n == Neighbor::EXPAND) return "EXPAND";
-    if (n == Neighbor::SHRINK) return "SHRINK";
-    if (n == Neighbor::RESET) return "RESET";
-    return "UNKNOWN";
-}
-
 const int SIZE = 1e4;
-double start_temp = 0;
-double end_temp = 0;
+double start_temp = 1000;
+double end_temp = 10;
 
 void print_report(const vector<Rect>& ans, ll score) {
     cerr << "score: " << score << endl;
@@ -146,6 +133,22 @@ int indexOf(vector<Rect> v, int data, int idx) {
     return itr == v.end() ? -1 : distance(v.begin(), itr);
 }
 
+vector<double> softmax(vector<int> values) {
+    vector<double> ret;
+    int sum = 0;
+    for (auto v : values) {
+        sum += v;
+    }
+    double minimized_sum = 0.0;
+    for (auto v : values) {
+        minimized_sum += exp((double)v / (double)sum);
+    }
+    for (auto v : values) {
+        ret.push_back(exp((double)v / (double)sum) / minimized_sum);
+    }
+    return ret;
+}
+
 struct Solver {
     vector<Rect> best_ans;
 
@@ -167,130 +170,93 @@ struct Solver {
         int iter = 0;
 
         while (chrono::system_clock::now() < time_limit) {
-            double temp = start_temp + (end_temp - start_temp) * (double)(chrono::system_clock::now() - start).count() / (double)(time_limit - start).count();
-            double progress = (double)(chrono::system_clock::now() - start).count() / (double)(time_limit - start).count();
             iter++;
 
             vector<Rect> ans = best_ans;
             ll score = 0;
-            Neighbor selected;
-            const vector<Neighbor> use_neighbors = {Neighbor::EXPAND, Neighbor::SHRINK, Neighbor::RESET};
-            selected = use_neighbors[rng() % use_neighbors.size()];
-            if (selected == Neighbor::EXPAND) {
-                int idx = rng() % n;
-                Rect a = ans[idx];
-                Ad ad = ads[idx];
+
+            // 要求面積が大きいものが優先的に広げられるようにする
+            vector<int> values;
+            vector<int> idxs;
+            rep(i, n) {
+                Rect a = ans[i];
+                Ad ad = ads[i];
                 int s = (a.x2 - a.x1) * (a.y2 - a.y1);
-                int try_left = 10;
-                while (try_left--) {
-                    int dx1 = 0, dx2 = 0, dy1 = 0, dy2 = 0;
-                    int move_dir = rng() % 4;  // L, R, U, D
-                    int expand_size = rng() % 30 + 1;
-                    bool is_in_the_border = false;
-                    if (move_dir == 0 && a.x1 - expand_size >= 0) {
-                        dx1 = -expand_size;
-                        is_in_the_border = true;
-                    }
-                    if (move_dir == 1 && a.x2 + expand_size < SIZE) {
-                        dx2 = expand_size;
-                        is_in_the_border = true;
-                    }
-                    if (move_dir == 2 && a.y1 - expand_size >= 0) {
-                        dy1 = -expand_size;
-                        is_in_the_border = true;
-                    }
-                    if (move_dir == 3 && a.y2 + expand_size < SIZE) {
-                        dy2 = expand_size;
-                        is_in_the_border = true;
-                    }
-                    if (!is_in_the_border) continue;
-                    Rect new_a = a;
-                    new_a.x1 += dx1;
-                    new_a.x2 += dx2;
-                    new_a.y1 += dy1;
-                    new_a.y2 += dy2;
-                    bool ok = true;
-                    rep(i, n) {
-                        if (i == idx) continue;
-                        if (new_a.overlap_with(ans[i])) {
-                            ok = false;
-                            break;
-                        }
-                    }
-                    if (!ok) continue;
-                    ans[idx] = new_a;
+                if (ad.r > s) {
+                    values.push_back(ad.r - s);
+                    idxs.push_back(i);
+                }
+            }
+            vector<double> probs = softmax(values);
+            vector<pair<int, int>> values_idxs;
+            rep(i, values.size()) {
+                values_idxs.push_back({values[i], idxs[i]});
+            }
+            sort(values_idxs.begin(), values_idxs.end(), greater<pair<int, int>>());
+            double r = rnd();
+            double sum = 0;
+            int selected_idx = -1;
+            rep(i, values_idxs.size()) {
+                sum += probs[i];
+                if (sum > r) {
+                    selected_idx = values_idxs[i].second;
                     break;
                 }
-                score = evaluate(ans);
             }
-            if (selected == Neighbor::SHRINK) {
-                int shrink_batch_size = n / 10;
-                vector<int> idxs;
-                rep(i, n) idxs.push_back(i);
-                shuffle(idxs.begin(), idxs.end(), engine);
-                while (shrink_batch_size--) {
-                    int idx = idxs.back();
-                    idxs.pop_back();
-                    Rect a = ans[idx];
-                    Ad ad = ads[idx];
-                    int s = (a.x2 - a.x1) * (a.y2 - a.y1);
-                    int try_left = 10;
-                    while (try_left--) {
-                        int dx1 = 0, dx2 = 0, dy1 = 0, dy2 = 0;
-                        int move_dir = rng() % 4;  // L, R, U, D
-                        int shrink_size = rng() % 100 + 1;
-                        bool is_valid_shrink = false;
-                        if (move_dir == 0 && a.x1 + shrink_size < a.x2) {
-                            dx1 = shrink_size;
-                            is_valid_shrink = true;
-                        }
-                        if (move_dir == 1 && a.x2 - shrink_size > a.x1) {
-                            dx2 = -shrink_size;
-                            is_valid_shrink = true;
-                        }
-                        if (move_dir == 2 && a.y1 + shrink_size < a.y2) {
-                            dy1 = shrink_size;
-                            is_valid_shrink = true;
-                        }
-                        if (move_dir == 3 && a.y2 - shrink_size > a.y1) {
-                            dy2 = -shrink_size;
-                            is_valid_shrink = true;
-                        }
-                        if (!is_valid_shrink) continue;
-                        a.x1 += dx1;
-                        a.x2 += dx2;
-                        a.y1 += dy1;
-                        a.y2 += dy2;
+            if (selected_idx == -1) continue;
+            int idx = selected_idx;
+            Rect a = ans[idx];
+            Ad ad = ads[idx];
+            int try_left = 100;
+            while (try_left--) {
+                int dx1 = 0, dx2 = 0, dy1 = 0, dy2 = 0;
+                int move_dir = rng() % 4;  // L, R, U, D
+                int diff = ad.r - (a.x2 - a.x1) * (a.y2 - a.y1);
+                int expand_size = rng() % (int)sqrt(diff) / 15 + 1;
+                bool is_in_the_border = false;
+                if (move_dir == 0 && a.x1 - expand_size >= 0) {
+                    dx1 = -expand_size;
+                    is_in_the_border = true;
+                }
+                if (move_dir == 1 && a.x2 + expand_size < SIZE) {
+                    dx2 = expand_size;
+                    is_in_the_border = true;
+                }
+                if (move_dir == 2 && a.y1 - expand_size >= 0) {
+                    dy1 = -expand_size;
+                    is_in_the_border = true;
+                }
+                if (move_dir == 3 && a.y2 + expand_size < SIZE) {
+                    dy2 = expand_size;
+                    is_in_the_border = true;
+                }
+                if (!is_in_the_border) continue;
+                Rect new_a = a;
+                new_a.x1 += dx1;
+                new_a.x2 += dx2;
+                new_a.y1 += dy1;
+                new_a.y2 += dy2;
+                bool ok = true;
+                rep(i, n) {
+                    if (i == idx) continue;
+                    if (new_a.overlap_with(ans[i])) {
+                        ok = false;
                         break;
                     }
                 }
-                score = evaluate(ans);
+                if (!ok) continue;
+                ans[idx] = new_a;
+                break;
             }
-            if (selected == Neighbor::RESET) {
-                int batch_size = n / 10;
-                vector<int> idxs;
-                rep(i, n) idxs.push_back(i);
-                shuffle(idxs.begin(), idxs.end(), engine);
-                while (batch_size--) {
-                    int idx = idxs.back();
-                    idxs.pop_back();
-                    Rect a = ans[idx];
-                    Ad ad = ads[idx];
-                    int x1 = ad.x;
-                    int y1 = ad.y;
-                    int x2 = x1 + 1;
-                    int y2 = y1 + 1;
-                    Rect new_a = {x1, y1, x2, y2};
-                    ans[idx] = new_a;
-                }
-                score = evaluate(ans);
-            }
+
+            score = evaluate(ans);
 
             int diff = score - best_score;
 
-            if (diff > 0 || exp((double)diff / temp) > rnd()) {
+            if (diff > 0) {
                 best_score = score;
                 best_ans = ans;
+                // if (!(rng() % 10)) answer(best_ans);
             }
         }
         // ========== ここまで山登り操作 ==========
@@ -318,24 +284,26 @@ int main(int argc, char* argv[]) {
         ads.push_back({x, y, r});
     }
 
-    int best_score = 0;
     vector<Rect> best_ans;
-    int left = 3;
-
-    while (left--) {
+    int best_score = 0;
+    chrono::system_clock::time_point start = chrono::system_clock::now();
+    while (chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now() - start).count() < 1950 - n * 4.5) {
         Solver s;
-        s.solve(660);
+        s.solve(n * 4.5);
         int score = evaluate(s.best_ans);
         if (score > best_score) {
             best_score = score;
             best_ans = s.best_ans;
         }
     }
-    answer(best_ans);
     // print_report(s.best_ans, s.evaluate(s.best_ans));
+    cerr << "best_score: " << best_score << endl;
+    answer(best_ans);
 
-    if (is_arg_contain_export)
-        println("Score =", best_score);
+    if (is_arg_contain_export) {
+        int score = evaluate(best_ans);
+        println("Score =", score);
+    }
 
     return 0;
 }
