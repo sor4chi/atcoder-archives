@@ -67,8 +67,12 @@ const char dir[4] = {'L', 'R', 'U', 'D'};
 
 enum class Neighbor {
     EXPAND,
-    MOVE,
 };
+
+string stringify(Neighbor n) {
+    if (n == Neighbor::EXPAND) return "EXPAND";
+    return "UNKNOWN";
+}
 
 const int SIZE = 1e4;
 
@@ -77,17 +81,6 @@ struct Solver {
 
     ll evaluate(const vector<Rect>& ans) {
         long double score = 0.0;
-        for (auto a : ans) {
-            for (auto b : ans) {
-                if (a == b) continue;
-                if (a.overlap_with(b)) {
-                    cerr << "overlap" << endl;
-                    cerr << a.x1 << " " << a.y1 << " " << a.x2 << " " << a.y2 << endl;
-                    cerr << b.x1 << " " << b.y1 << " " << b.x2 << " " << b.y2 << endl;
-                    return -1;
-                }
-            }
-        }
         rep(i, n) {
             Ad ad = ads[i];
             Rect a = ans[i];
@@ -122,70 +115,62 @@ struct Solver {
         int iter = 0;
         while (chrono::system_clock::now() < time_limit) {
             iter++;
-            Neighbor selected = Neighbor(rng() % 2);
+
+            // ========== ここから山登り操作 ==========
             vector<Rect> ans = best_ans;
+            Neighbor selected = Neighbor::EXPAND;
             ll score = 0;
+            int idx = rng() % n;
+            Rect a = ans[idx];
             if (selected == Neighbor::EXPAND) {
-                int idx = rng() % n;
-                Rect a = ans[idx];
-                while (true) {
+                int try_left = 10;
+                while (try_left--) {
+                    int dx1 = 0, dx2 = 0, dy1 = 0, dy2 = 0;
                     int move_dir = rng() % 4;  // L, R, U, D
                     int expand_size = rng() % 100 + 1;
+                    bool is_in_the_border = false;
                     if (move_dir == 0 && a.x1 - expand_size >= 0) {
-                        a.x1 -= expand_size;
-                        break;
+                        dx1 = -expand_size;
+                        is_in_the_border = true;
                     }
                     if (move_dir == 1 && a.x2 + expand_size < SIZE) {
-                        a.x2 += expand_size;
-                        break;
+                        dx2 = expand_size;
+                        is_in_the_border = true;
                     }
                     if (move_dir == 2 && a.y1 - expand_size >= 0) {
-                        a.y1 -= expand_size;
-                        break;
+                        dy1 = -expand_size;
+                        is_in_the_border = true;
                     }
                     if (move_dir == 3 && a.y2 + expand_size < SIZE) {
-                        a.y2 += expand_size;
-                        break;
+                        dy2 = expand_size;
+                        is_in_the_border = true;
                     }
+                    if (!is_in_the_border) continue;
+                    Rect new_a = a;
+                    new_a.x1 += dx1;
+                    new_a.x2 += dx2;
+                    new_a.y1 += dy1;
+                    new_a.y2 += dy2;
+                    bool ok = true;
+                    rep(i, n) {
+                        if (i == idx) continue;
+                        if (new_a.overlap_with(ans[i])) {
+                            ok = false;
+                            break;
+                        }
+                    }
+                    if (!ok) continue;
+                    ans[idx] = new_a;
+                    break;
                 }
-                ans[idx] = a;
                 score = evaluate(ans);
             }
-            if (selected == Neighbor::MOVE) {
-                int idx = rng() % n;
-                Rect a = ans[idx];
-                while (true) {
-                    int move_dir = rng() % 4;  // L, R, U, D
-                    int move_size = rng() % 100 + 1;
-                    if (move_dir == 0 && a.x1 - move_size >= 0) {
-                        a.x1 -= move_size;
-                        a.x2 -= move_size;
-                        break;
-                    }
-                    if (move_dir == 1 && a.x2 + move_size < SIZE) {
-                        a.x1 += move_size;
-                        a.x2 += move_size;
-                        break;
-                    }
-                    if (move_dir == 2 && a.y1 - move_size >= 0) {
-                        a.y1 -= move_size;
-                        a.y2 -= move_size;
-                        break;
-                    }
-                    if (move_dir == 3 && a.y2 + move_size < SIZE) {
-                        a.y1 += move_size;
-                        a.y2 += move_size;
-                        break;
-                    }
-                }
-                ans[idx] = a;
-                score = evaluate(ans);
-            }
+            // ========== ここまで山登り操作 ==========
+
             if (score > best_score) {
                 best_score = score;
                 best_ans = ans;
             }
-            cerr << "score: " << score << endl;
         }
         cerr << "iter: " << iter << endl;
     }
