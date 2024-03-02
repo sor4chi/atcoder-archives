@@ -287,9 +287,12 @@ int main(int argc, char* argv[]) {
     vector<Rect> best_ans;
     int best_score = 0;
     chrono::system_clock::time_point start = chrono::system_clock::now();
-    while (chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now() - start).count() < 1950 - n * 4.5) {
+    int each_tl = n * 5;
+    int iter = 0;
+    while (chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now() - start).count() < 5000 - each_tl) {
+        iter++;
         Solver s;
-        s.solve(n * 4.5);
+        s.solve(each_tl);
         int score = evaluate(s.best_ans);
         if (score > best_score) {
             best_score = score;
@@ -297,6 +300,7 @@ int main(int argc, char* argv[]) {
         }
     }
     // print_report(s.best_ans, s.evaluate(s.best_ans));
+    cerr << "iter: " << iter << endl;
     cerr << "best_score: " << best_score << endl;
     answer(best_ans);
 
