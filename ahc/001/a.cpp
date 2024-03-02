@@ -149,10 +149,41 @@ vector<double> softmax(vector<int> values) {
     return ret;
 }
 
+enum class NeighborType {
+    MOVE,
+    EXPAND,
+    SHRINK,
+};
+
+map<NeighborType, double> neighbor_type_probs = {
+    {NeighborType::MOVE, 1.0},
+    {NeighborType::EXPAND, 1.0},
+    {NeighborType::SHRINK, 1.0},
+};
+
+NeighborType rand_neighbor_type() {
+    double r = rnd();
+    double sum = 0;
+    for (auto p : neighbor_type_probs) {
+        sum += p.second;
+    }
+    double acc = 0;
+    for (auto p : neighbor_type_probs) {
+        acc += p.second / sum;
+        if (r < acc) {
+            return p.first;
+        }
+    }
+    return NeighborType::MOVE;
+}
+
+chrono::system_clock::time_point start;
+
 struct Solver {
     vector<Rect> best_ans;
+    ll best_score = 0;
 
-    void solve(int tl = 1950) {
+    void create_initial(int tl = 1950) {
         // === 初期解生成 ここから ===
         for (auto ad : ads) {
             int x1 = ad.x;
@@ -164,9 +195,7 @@ struct Solver {
         // === 初期解生成 ここまで ===
 
         // ========== ここから山登り操作 ==========
-        chrono::system_clock::time_point start = chrono::system_clock::now();
         chrono::system_clock::time_point time_limit = start + chrono::milliseconds(tl);
-        ll best_score = 0;
         int iter = 0;
 
         while (chrono::system_clock::now() < time_limit) {
@@ -256,10 +285,152 @@ struct Solver {
             if (diff > 0) {
                 best_score = score;
                 best_ans = ans;
-                // if (!(rng() % 10)) answer(best_ans);
             }
         }
         // ========== ここまで山登り操作 ==========
+    }
+
+    // 焼きなまし
+    void annealing(int tl = 1950) {
+        chrono::system_clock::time_point time_limit = start + chrono::milliseconds(tl);
+        int iter = 0;
+        double temp = start_temp;
+        while (chrono::system_clock::now() < time_limit) {
+            iter++;
+            vector<Rect> ans = best_ans;
+            ll score = 0;
+
+            // ここからランダムに操作を行う
+            NeighborType nt = rand_neighbor_type();
+
+            if (nt == NeighborType::MOVE) {
+                int select_dir = rng() % 4;
+                int select_idx = rng() % n;
+                Rect a = ans[select_idx];
+                int dx = d.at(dir[select_dir]).first;
+                int dy = d.at(dir[select_dir]).second;
+                Rect new_a = a;
+                new_a.x1 += dx;
+                new_a.x2 += dx;
+                new_a.y1 += dy;
+                new_a.y2 += dy;
+                if (new_a.x1 < 0 || new_a.x2 >= SIZE || new_a.y1 < 0 || new_a.y2 >= SIZE) continue;
+                bool ok = true;
+                rep(i, n) {
+                    if (i == select_idx) continue;
+                    if (new_a.overlap_with(ans[i])) {
+                        ok = false;
+                        break;
+                    }
+                }
+                if (!ok) continue;
+                ans[select_idx] = new_a;
+                score = evaluate(ans);
+            }
+            if (nt == NeighborType::EXPAND) {
+                int select_idx = rng() % n;
+                Rect a = ans[select_idx];
+                Ad ad = ads[select_idx];
+                // 4方向で動ける方向に拡張する
+                vector<int> dirs = {0, 1, 2, 3};
+                shuffle(dirs.begin(), dirs.end(), engine);
+                bool is_in_the_border = false;
+                int s = (a.x2 - a.x1) * (a.y2 - a.y1);
+                if (ad.r <= s) continue;
+                for (auto selected_dir : dirs) {
+                    int dx1 = 0, dx2 = 0, dy1 = 0, dy2 = 0;
+                    int expand_dir = selected_dir;  // L, R, U, D
+                    int diff = ads[select_idx].r - (a.x2 - a.x1) * (a.y2 - a.y1);
+                    int expand_size = 1;
+                    if (expand_dir == 0 && a.x1 - expand_size >= 0) {
+                        dx1 = -expand_size;
+                        is_in_the_border = true;
+                    }
+                    if (expand_dir == 1 && a.x2 + expand_size < SIZE) {
+                        dx2 = expand_size;
+                        is_in_the_border = true;
+                    }
+                    if (expand_dir == 2 && a.y1 - expand_size >= 0) {
+                        dy1 = -expand_size;
+                        is_in_the_border = true;
+                    }
+                    if (expand_dir == 3 && a.y2 + expand_size < SIZE) {
+                        dy2 = expand_size;
+                        is_in_the_border = true;
+                    }
+                    if (!is_in_the_border) continue;
+                    Rect new_a = a;
+                    new_a.x1 += dx1;
+                    new_a.x2 += dx2;
+                    new_a.y1 += dy1;
+                    new_a.y2 += dy2;
+                    bool ok = true;
+                    rep(i, n) {
+                        if (i == select_idx) continue;
+                        if (new_a.overlap_with(ans[i])) {
+                            ok = false;
+                            break;
+                        }
+                    }
+                    if (!ok) continue;
+                    ans[select_idx] = new_a;
+                    // 広げられたら終わり
+                    break;
+                }
+                score = evaluate(ans);
+            }
+            if (nt == NeighborType::SHRINK) {
+                int select_idx = rng() % n;
+                Rect a = ans[select_idx];
+                // 4方向で動ける方向に縮める
+                vector<int> dirs = {0, 1, 2, 3};
+                shuffle(dirs.begin(), dirs.end(), engine);
+                bool is_in_the_border = false;
+                for (auto selected_dir : dirs) {
+                    int dx1 = 0, dx2 = 0, dy1 = 0, dy2 = 0;
+                    int shrink_dir = selected_dir;  // L, R, U, D
+                    int shrink_size = 1;
+                    if (shrink_dir == 0 && a.x1 + shrink_size < a.x2) {
+                        dx1 = shrink_size;
+                        is_in_the_border = true;
+                    }
+                    if (shrink_dir == 1 && a.x2 - shrink_size > a.x1) {
+                        dx2 = -shrink_size;
+                        is_in_the_border = true;
+                    }
+                    if (shrink_dir == 2 && a.y1 + shrink_size < a.y2) {
+                        dy1 = shrink_size;
+                        is_in_the_border = true;
+                    }
+                    if (shrink_dir == 3 && a.y2 - shrink_size > a.y1) {
+                        dy2 = -shrink_size;
+                        is_in_the_border = true;
+                    }
+                    if (!is_in_the_border) continue;
+                    Rect new_a = a;
+                    new_a.x1 += dx1;
+                    new_a.x2 += dx2;
+                    new_a.y1 += dy1;
+                    new_a.y2 += dy2;
+                    ans[select_idx] = new_a;
+                    // 縮められたら終わり
+                    break;
+                }
+                score = evaluate(ans);
+            }
+
+            int diff = score - best_score;
+
+            double r = rnd();
+            double prob = exp((double)diff / temp);
+
+            if (diff > 0 || r < prob) {
+                best_score = score;
+                best_ans = ans;
+                // if (!(rng() % 1000)) answer(best_ans);
+            }
+            temp = start_temp + (end_temp - start_temp) * (double)(chrono::system_clock::now() - start).count() / (double)(time_limit - start).count();
+        }
     }
 };
 
@@ -269,12 +440,23 @@ int main(int argc, char* argv[]) {
     cout.tie(nullptr);
     cout << fixed << setprecision(15);
 
+    start = chrono::system_clock::now();
+
     bool is_arg_contain_export = false;
     for (int i = 0; i < argc; i++) {
         if (string(argv[i]) == "--export") {
             is_arg_contain_export = true;
             break;
         }
+    }
+
+    // neighbor_type_probsを正規化
+    double sum = 0;
+    for (auto p : neighbor_type_probs) {
+        sum += p.second;
+    }
+    for (auto& p : neighbor_type_probs) {
+        p.second /= sum;
     }
 
     input(n);
@@ -284,30 +466,34 @@ int main(int argc, char* argv[]) {
         ads.push_back({x, y, r});
     }
 
-    vector<Rect> best_ans;
-    int best_score = 0;
-    chrono::system_clock::time_point start = chrono::system_clock::now();
-    int each_tl = n * 5;
-    int iter = 0;
-    while (chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now() - start).count() < 5000 - each_tl) {
-        iter++;
+    int initial_tl = n * 5;
+    int final_tl = 4950;
+    // 抽選
+    int election_left = 5;
+    ll best_initial_score = 0;
+    Solver best_solver;
+    while (election_left--) {
         Solver s;
-        s.solve(each_tl);
+        s.create_initial(initial_tl);
         int score = evaluate(s.best_ans);
-        if (score > best_score) {
-            best_score = score;
-            best_ans = s.best_ans;
+        if (score > best_initial_score) {
+            best_initial_score = score;
+            best_solver = s;
         }
     }
-    // print_report(s.best_ans, s.evaluate(s.best_ans));
-    cerr << "iter: " << iter << endl;
-    cerr << "best_score: " << best_score << endl;
-    answer(best_ans);
+    cerr << "initial score: " << best_initial_score << endl;
+    best_solver.annealing(final_tl);
+    ll score = evaluate(best_solver.best_ans);
+    cerr << "final score: " << score << endl;
+
+    answer(best_solver.best_ans);
 
     if (is_arg_contain_export) {
-        int score = evaluate(best_ans);
         println("Score =", score);
     }
+
+    chrono::system_clock::time_point end = chrono::system_clock::now();
+    cerr << "elapsed time: " << chrono::duration_cast<chrono::milliseconds>(end - start).count() << "ms" << endl;
 
     return 0;
 }
