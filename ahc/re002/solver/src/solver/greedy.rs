@@ -27,7 +27,8 @@ impl Solver for GreedySolver {
     fn solve(&mut self) -> Output {
         // DFSする
         let mut best_ans = vec![];
-        let mut first_node = (self.input.si, self.input.sj, vec![], HashSet::new());
+        let mut best_score = 0;
+        let mut first_node = (self.input.si, self.input.sj, vec![], HashSet::new(), 0);
         first_node
             .3
             .insert(self.input.t[first_node.0][first_node.1]);
@@ -38,14 +39,15 @@ impl Solver for GreedySolver {
             let mut stack = vec![];
             stack.push(first_node.clone());
             let timer = Instant::now();
-            while let Some((i, j, op, visited)) = stack.pop() {
+            while let Some((i, j, op, visited, score)) = stack.pop() {
                 if timer.elapsed().as_millis()
                     > TL / DIRECTIONS.iter().permutations(4).count() as u128
                 {
                     break;
                 }
-                if best_ans.len() < op.len() {
+                if score > best_score {
                     best_ans.clone_from(&op);
+                    best_score = score;
                 }
 
                 for (dir, (di, dj)) in perm.iter() {
@@ -59,7 +61,7 @@ impl Solver for GreedySolver {
                         new_op.push(*dir);
                         let mut visited = visited.clone();
                         visited.insert(self.input.t[ni][nj]);
-                        stack.push((ni, nj, new_op, visited));
+                        stack.push((ni, nj, new_op, visited, score + self.input.p[ni][nj]));
                     }
                 }
             }
